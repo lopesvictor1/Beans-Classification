@@ -6,7 +6,7 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-missing_data=("True" "False")
+missing_data=("True")
 missing_percentage=("5")
 imputing_method=("knn" "il")
 outlier_method=("3sigma" "mad")
@@ -27,7 +27,7 @@ if [ "$1" == "all" ]; then
                     experiment_name="Experimento$counter"
                     for md in "${missing_data[@]}"; do
                         for mp in "${missing_percentage[@]}"; do
-                            for (( i=1; i<=10; i++ )); do
+                            for (( i=1; i<=50; i++ )); do
                                 if [ "$cm" == "knn" ]; then
                                     echo "Running experiment: $md $mp $im $om $nm $cm 10 $experiment_name"
                                     python Experiments.py "$md" "$mp" "$im" "$om" "$nm" "$cm" "10" "$experiment_name"
