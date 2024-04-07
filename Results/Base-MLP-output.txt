@@ -1,7 +1,0 @@
-Best Result
-Test Parameters: First Layer Neurons=11, Second Layers Neurons=7, Learning Rate=0.003, Activation Functions=logistic.
-Results...
-Acurácia Média: 89.74%
-Precisão Média: 92.23%
-Revocação Média: 91.21%
-F1-Score Médio: 90.69%
