@@ -1,0 +1,2 @@
+name,missing_values, mv_percentage, imputer_method, outlier_method, normalization_method, classification_method, knn_neighbors, mlp_activation, mlp_first_layer, mlp_second_layer, mlp_max_iter, mlp_learning_rate, mlp_learning_rate_init, mlp_tol, accuracy, precision, recall, f1
+Experiment0,False,-1,knn,3sigma,minmax,mlp,-1,logistic,12,3,500,constant,0.3,1e-05,0.8477887253585028,0.8668559140819376,0.8625615189461568,0.8582519786518296

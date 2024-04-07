@@ -1,5 +1,0 @@
-Experimento Melhor Configuração de MLP com Pré-processamento
-Acurácia Média: 91.37%
-Precisão Média: 93.81%
-Revocação Média: 92.99%
-F1-Score Médio: 92.52%

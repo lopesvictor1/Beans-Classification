@@ -5,6 +5,7 @@ import random
 import pickle
 import os
 import sys
+import csv
 import matplotlib.pyplot as plt
 import seaborn.objects as so
 from ucimlrepo import fetch_ucirepo
@@ -18,11 +19,9 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.neural_network import MLPClassifier
 
 
-
 cols = ['Area', 'Perimeter', 'MajorAxisLength', 'MinorAxisLength', 'AspectRatio', 'Eccentricity', 
         'ConvexArea', 'EquivDiameter', 'Extent', 'Solidity', 'Roundness', 'Compactness', 'ShapeFactor1', 
         'ShapeFactor2', 'ShapeFactor3', 'ShapeFactor4']
-
 
 
 def introduce_missing_values(df, percentage=5):
@@ -94,6 +93,7 @@ def transform_labels_int(df):
                                                 ( 2 if x == 'CALI' else (3 if x == 'DERMASON' else 
                                                 ( 4 if x == 'HOROZ' else (5 if x == 'SEKER' else (6 if x == 'SIRA' else 99)))))))
     return df
+
 
 def transform_labels_str(df):
     """
@@ -216,7 +216,7 @@ def classificator(df, method='knn', *args):
         # Perform cross-validation and obtain the indices of train and test sets
         cv_results = cross_validate(knn_classifier, X, y, cv=cv, scoring=scoring, return_train_score=True, return_estimator=True, error_score='raise')
 
-        ax1, ax2 = plot_results(cv, cv_results, X, y)
+        agg_conf_matrix, agg_loss = plot_results(cv, cv_results, X, y)
         
     elif method == 'mlp':
         
@@ -250,14 +250,12 @@ def classificator(df, method='knn', *args):
         cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
         cv_results = cross_validate(classifier, X, y, cv=cv, scoring=scoring, return_train_score=True, return_estimator=True, error_score='raise')
 
-        ax1, ax2 = plot_results(cv, cv_results, X, y)
+        agg_conf_matrix, agg_loss = plot_results(cv, cv_results, X, y)
   
     else:
         print("Invalid classification method. Please choose between knn and mlp.")
         exit(1)
-    return cv_results, ax1, ax2
-
-
+    return cv_results, agg_conf_matrix, agg_loss
 
 
 def plot_results(cv, cv_results, X, y):
@@ -295,47 +293,44 @@ def plot_results(cv, cv_results, X, y):
                                             ('HOROZ' if x == 4 else ('SEKER' if x == 5 else ('SIRA' if x == 6 else 'UNKNOW'))))))
 
     # Plot the aggregated confusion matrix
-    ax1 = plt.figure(figsize=(10, 8))
-    ax1 = sns.heatmap(conf_matrix_aggregated, annot=True, cmap=sns.cubehelix_palette(as_cmap=True), fmt='d', cbar=False, 
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(conf_matrix_aggregated, annot=True, cmap=sns.cubehelix_palette(as_cmap=True), fmt='d', cbar=False, 
                 xticklabels=[label_names(i) for i in range(num_classes)],
                 yticklabels=[label_names(i) for i in range(num_classes)])
-    ax1 = plt.xlabel('Predicted Label', fontsize=14, fontweight='bold')
-    ax1 = plt.ylabel('True Label', fontsize=14, fontweight='bold')
-    #ax1 = plt.title('Aggregated Confusion Matrix')
+    plt.xlabel('Predicted Label', fontsize=14, fontweight='bold')
+    plt.ylabel('True Label', fontsize=14, fontweight='bold')
+    agg_conf_matrix = plt.gcf()
 
+    agg_loss = None
     if isinstance(estimator, MLPClassifier):
-        ax2 = plt.figure(figsize=(12, 8))  # Create the figure outside the loop
+        plt.figure(figsize=(12, 8))  # Create the figure outside the loop
         for fold, estimator in enumerate(cv_results['estimator']):
-            ax2 = plt.plot(np.arange(1, estimator.n_iter_ + 1), estimator.loss_curve_, label='Fold {}'.format(fold + 1))
-        #ax2 = plt.title('Training Loss')
-        ax2 = plt.xlabel('Iteration')
-        ax2 = plt.ylabel('Loss')
-        ax2 = plt.legend()
-        ax2 = plt.show()
-    else:
-        ax2 = None
-
-    return ax1, ax2
+            plt.plot(np.arange(1, estimator.n_iter_ + 1), estimator.loss_curve_, label='Fold {}'.format(fold + 1))
+        plt.xlabel('Iteration')
+        plt.ylabel('Loss')
+        plt.legend()
+        agg_loss = plt.gcf()
+    return agg_conf_matrix, agg_loss
             
     
 
 if __name__ == "__main__":
 
-    missing_data = True
-    missing_data_percentage = 5
-    imputing_method = 'knn'
-    outlier_method = '3sigma'
-    normalization_method = 'minmax'
-    classification_method = 'knn'
-    knn_neighbors = 10
-    mlp_activation = 'logistic'
-    mlp_first_layer = 12
-    mlp_second_layer = 3
-    mlp_max_iter = 500
-    mlp_learning_rate = 'constant'
-    mlp_learning_rate_init = 0.3
-    mlp_tol = 1e-5
-    experiment_name = 'Experiment 0'
+    missing_data = -1
+    missing_data_percentage = -1
+    imputing_method = -1
+    outlier_method = -1
+    normalization_method = -1
+    classification_method = -1
+    knn_neighbors = -1
+    mlp_activation = -1
+    mlp_first_layer = -1
+    mlp_second_layer = -1
+    mlp_max_iter = -1
+    mlp_learning_rate = -1
+    mlp_learning_rate_init = -1
+    mlp_tol = -1
+    experiment_name = 'No Experiment Name Specified'
 
     
     args = sys.argv[1:]
@@ -450,20 +445,30 @@ if __name__ == "__main__":
     #Classifying the data
     print("Classifying the data...")
     if classification_method == 'knn':
-        cv_results, ax1, ax2 = classificator(df, classification_method, knn_neighbors)
+        cv_results, agg_conf_matrix, agg_loss = classificator(df, classification_method, knn_neighbors)
     else:
-        cv_results, ax1, ax2 = classificator(df, classification_method, mlp_activation, (mlp_first_layer, mlp_second_layer), 
+        cv_results, agg_conf_matrix, agg_loss = classificator(df, classification_method, mlp_activation, (mlp_first_layer, mlp_second_layer), 
                                    mlp_max_iter, mlp_learning_rate, mlp_learning_rate_init, mlp_tol)
     print("Data classified")
 
     # Save the results to a file
-    with open('results.pkl', 'wb') as f:
-        pickle.dump(cv_results, f)
-    
+    with open('results.csv', mode='a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([experiment_name, missing_data, missing_data_percentage, imputing_method, outlier_method, normalization_method,
+                         classification_method, knn_neighbors, mlp_activation, mlp_first_layer, mlp_second_layer, mlp_max_iter, 
+                         mlp_learning_rate, mlp_learning_rate_init, mlp_tol, cv_results['test_acc'].mean(), cv_results['test_prec'].mean(), 
+                         cv_results['test_recall'].mean(), cv_results['test_f1'].mean()])
+
+    folder_path = os.path.join(os.getcwd(), 'Plots/Experiments/')
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
     # Save the plots to files
-    ax1.savefig('aggregated_confusion_matrix_' + experiment_name + '.png')
-    if ax2 != None:
-        ax2.savefig('aggregate_training_loss_' + experiment_name + '.png')   
+    if agg_conf_matrix != None:
+        agg_conf_matrix = plt.title('Aggregated Confusion Matrix - ' + str(experiment_name))
+        plt.savefig(folder_path + 'aggregated_confusion_matrix_' + str(experiment_name) + '.png')
+    if agg_loss != None:
+        agg_loss = plt.title('Training Loss - ' + experiment_name)
+        plt.savefig(folder_path + 'training_loss_' + str(experiment_name) + '.png')
 
 
 
