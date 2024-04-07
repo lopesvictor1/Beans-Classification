@@ -4,19 +4,18 @@ import numpy as np
 import random
 import pickle
 import os
+import sys
 import matplotlib.pyplot as plt
 import seaborn.objects as so
 from ucimlrepo import fetch_ucirepo
 from sklearn.impute import KNNImputer as knni
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score
 from sklearn.model_selection import cross_validate
 from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import KFold
 from sklearn.model_selection import StratifiedKFold
+from sklearn.neural_network import MLPClassifier
 
 
 
@@ -91,7 +90,7 @@ def transform_labels_int(df):
     Returns:
         df (pd.DataFrame): the dataframe with transformed labels
     """
-    df['Class'] = df['Class'].transform(lambda x: 0 if x ==' BARBUNYA' else (1 if x == 'BOMBAY' else 
+    df['Class'] = df['Class'].transform(lambda x: 0 if x == 'BARBUNYA' else (1 if x == 'BOMBAY' else 
                                                 ( 2 if x == 'CALI' else (3 if x == 'DERMASON' else 
                                                 ( 4 if x == 'HOROZ' else (5 if x == 'SEKER' else (6 if x == 'SIRA' else 99)))))))
     return df
@@ -190,78 +189,199 @@ def classificator(df, method='knn', *args):
     Returns:
         df (pd.DataFrame): the dataframe with the predicted labels
     """
+    X = df.iloc[:, :16]  # Features (columns 0 to 15)
+    y = df.iloc[:, 16]   # Label (column 16)
+    scoring = {'acc' : 'accuracy',
+               'prec' : 'precision_macro',
+               'recall' : 'recall_macro',
+               'f1' : 'f1_macro'}
+    
     if method == 'knn':
         
         if len(args) == 0:
-            n_splits = 10
+            n_neighbors = 10
+        elif len(args) == 1:
+            n_neighbors = args[0]
         else:
-            n_splits = args[0]
+            print("Invalid number of arguments for KNN classification.")
+            print("Please provide the number of splits for the cross-validation.")
+            print("Example: classificator(df, 'knn', 10)")
+            exit(1)
         
-        knn_classifier = KNeighborsClassifier(n_neighbors=10)
-        X = df.iloc[:, :16]  # Features (columns 0 to 15)
-        y = df.iloc[:, 16]   # Label (column 16)
-        scoring = {'acc' : 'accuracy',
-                'prec' : 'precision_macro',
-                'recall' : 'recall_macro',
-                'f1' : 'f1_macro'}
+        knn_classifier = KNeighborsClassifier(n_neighbors=n_neighbors)
+
         # Define the cross-validation splitter
-        cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+        cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
         
         # Perform cross-validation and obtain the indices of train and test sets
         cv_results = cross_validate(knn_classifier, X, y, cv=cv, scoring=scoring, return_train_score=True, return_estimator=True, error_score='raise')
-            # Collect predictions from each fold
-        y_pred = []
-        # Initialize an empty list to store confusion matrices for each fold
-        conf_matrices = []
-        # Determine the total number of classes
-        
-        num_classes = len(np.unique(y))
-        for estimator, (_, test_index) in zip(cv_results['estimator'], cv.split(X, y)):
-            y_pred_fold = estimator.predict(X.iloc[test_index])
-            y_pred.append(y_pred_fold)
-            y_true_fold = y.iloc[test_index]
-            
-            # Compute the confusion matrix for this fold with specified number of classes
-            conf_matrix_fold = confusion_matrix(y_true_fold, y_pred_fold, labels=range(num_classes))
 
-            # Append the confusion matrix to the list
-            conf_matrices.append(conf_matrix_fold)
-
-        # Aggregate the confusion matrices across all folds
-        conf_matrix_aggregated = sum(conf_matrices)
-
-        label_names = lambda x: 'BARBUNYA' if x == 0 else ('BOMBAY' if x == 1 else
-                                                ('CALI' if x == 2 else ('DERMASON' if x == 3 else
-                                                ('HOROZ' if x == 4 else ('SEKER' if x == 5 else 'SIRA')))))
-
-        # Plot the aggregated confusion matrix
-        plt.figure(figsize=(10, 8))
-        sns.heatmap(conf_matrix_aggregated, annot=True, fmt='d', cmap='Blues', cbar=False, 
-                    xticklabels=[label_names(i) for i in range(num_classes)],
-                    yticklabels=[label_names(i) for i in range(num_classes)])
-        plt.xlabel('Predicted Label', fontsize=14, fontweight='bold')
-        plt.ylabel('True Label', fontsize=14, fontweight='bold')
-        plt.title('Aggregated Confusion Matrix')
-        plt.show()
-
-        # Concatenate predictions from all folds
-        y_pred = np.concatenate(y_pred)
-        print('Average Accuracy: %.2f%%' % (np.mean(cv_results['test_acc']) * 100))
-        print('Average Precision: %.2f%%' % (np.mean(cv_results['test_prec']) * 100))
-        print('Average Recall: %.2f%%' % (np.mean(cv_results['test_recall']) * 100))
-        print('Average F1-Score: %.2f%%' % (np.mean(cv_results['test_f1']) * 100))
+        ax1, ax2 = plot_results(cv, cv_results, X, y)
         
     elif method == 'mlp':
-        pass
+        
+        if len(args) == 0:
+            activation = 'logistic'
+            hidden_layer_sizes = (12,3)
+            max_iter = 500
+            learning_rate = 'constant'
+            learning_rate_init = 0.3
+            tol = 1e-5
+            
+            pass
+        elif len(args) == 6:
+            activation = args[0]
+            hidden_layer_sizes = args[1]
+            max_iter = args[2]
+            learning_rate = args[3]
+            learning_rate_init = args[4]
+            tol = args[5]
+        else:
+            print("Invalid number of arguments for MLP classification.")
+            print("Please provide the activation function, the hidden layer sizes, the maximum number of iterations," + 
+                  "the learning rate, the initial learning rate and the tolerance.")
+            print("Example: classificator(df, 'mlp', 'logistic', (12,3), 500, 'constant', 0.3, 1e-3)")
+            exit(1)
+
+        classifier = MLPClassifier(activation=activation, solver='adam', alpha=1e-5, hidden_layer_sizes=hidden_layer_sizes, random_state=1, 
+                                   verbose=True, learning_rate=learning_rate, learning_rate_init=learning_rate_init, tol=tol, max_iter=max_iter)
+
+        # Define the cross-validation splitter
+        cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+        cv_results = cross_validate(classifier, X, y, cv=cv, scoring=scoring, return_train_score=True, return_estimator=True, error_score='raise')
+
+        ax1, ax2 = plot_results(cv, cv_results, X, y)
+  
     else:
         print("Invalid classification method. Please choose between knn and mlp.")
-    return cv_results
+        exit(1)
+    return cv_results, ax1, ax2
 
 
+
+
+def plot_results(cv, cv_results, X, y):
+    """
+    Plot the results of the classification
+
+    Args:
+        cv (cv): the cross-validation splitter
+        cv_results (dict): the results of the classification
+        X (pd.DataFrame): the features
+        y (pd.DataFrame): the labels
+    """
+    # Collect predictions from each fold
+    y_pred = []
+    # Initialize an empty list to store confusion matrices for each fold
+    conf_matrices = []
+    # Determine the total number of classes
+    num_classes = len(np.unique(y))
+    for estimator, (_, test_index) in zip(cv_results['estimator'], cv.split(X, y)):
+        y_pred_fold = estimator.predict(X.iloc[test_index])
+        y_pred.append(y_pred_fold)
+        y_true_fold = y.iloc[test_index]
+        
+        # Compute the confusion matrix for this fold with specified number of classes
+        conf_matrix_fold = confusion_matrix(y_true_fold, y_pred_fold, labels=range(num_classes))
+
+        # Append the confusion matrix to the list
+        conf_matrices.append(conf_matrix_fold)
+
+    # Aggregate the confusion matrices across all folds
+    conf_matrix_aggregated = sum(conf_matrices)
+
+    label_names = lambda x: 'BARBUNYA' if x == 0 else ('BOMBAY' if x == 1 else
+                                            ('CALI' if x == 2 else ('DERMASON' if x == 3 else
+                                            ('HOROZ' if x == 4 else ('SEKER' if x == 5 else ('SIRA' if x == 6 else 'UNKNOW'))))))
+
+    # Plot the aggregated confusion matrix
+    ax1 = plt.figure(figsize=(10, 8))
+    ax1 = sns.heatmap(conf_matrix_aggregated, annot=True, cmap=sns.cubehelix_palette(as_cmap=True), fmt='d', cbar=False, 
+                xticklabels=[label_names(i) for i in range(num_classes)],
+                yticklabels=[label_names(i) for i in range(num_classes)])
+    ax1 = plt.xlabel('Predicted Label', fontsize=14, fontweight='bold')
+    ax1 = plt.ylabel('True Label', fontsize=14, fontweight='bold')
+    #ax1 = plt.title('Aggregated Confusion Matrix')
+
+    if isinstance(estimator, MLPClassifier):
+        ax2 = plt.figure(figsize=(12, 8))  # Create the figure outside the loop
+        for fold, estimator in enumerate(cv_results['estimator']):
+            ax2 = plt.plot(np.arange(1, estimator.n_iter_ + 1), estimator.loss_curve_, label='Fold {}'.format(fold + 1))
+        #ax2 = plt.title('Training Loss')
+        ax2 = plt.xlabel('Iteration')
+        ax2 = plt.ylabel('Loss')
+        ax2 = plt.legend()
+        ax2 = plt.show()
+    else:
+        ax2 = None
+
+    return ax1, ax2
             
     
 
 if __name__ == "__main__":
+
+    missing_data = True
+    missing_data_percentage = 5
+    imputing_method = 'knn'
+    outlier_method = '3sigma'
+    normalization_method = 'minmax'
+    classification_method = 'knn'
+    knn_neighbors = 10
+    mlp_activation = 'logistic'
+    mlp_first_layer = 12
+    mlp_second_layer = 3
+    mlp_max_iter = 500
+    mlp_learning_rate = 'constant'
+    mlp_learning_rate_init = 0.3
+    mlp_tol = 1e-5
+    experiment_name = 'Experiment 0'
+
+    
+    args = sys.argv[1:]
+
+    if len(args) < 1:
+        print("Invalid number of arguments. Please provide all arguments necessary.")
+        print("Example: python Experiments.py True 5 knn 3sigma minmax knn 10")
+        exit(1)
+    else:
+        if args[0] == 'False':
+            missing_data = False
+            imputing_method = args[1]
+            outlier_method = args[2]
+            normalization_method = args[3]
+            classification_method = args[4]
+            if classification_method == 'knn':
+                knn_neighbors = int(args[5])
+                experiment_name = args[6]
+            else:
+                mlp_activation = args[5]
+                mlp_first_layer = int(args[6])
+                mlp_second_layer = int(args[7])
+                mlp_max_iter = int(args[8])
+                mlp_learning_rate = args[9]
+                mlp_learning_rate_init = float(args[10])
+                mlp_tol = float(args[11])
+                experiment_name = args[12]
+        else:
+            missing_data = True
+            missing_data_percentage = int(args[1])
+            imputing_method = args[2]
+            outlier_method = args[3]
+            normalization_method = args[4]
+            classification_method = args[5]
+            if classification_method == 'knn':
+                knn_neighbors = int(args[6])
+                experiment_name = args[7]
+            else:
+                mlp_activation = args[6]
+                mlp_first_layer = int(args[7])
+                mlp_second_layer = int(args[8])
+                mlp_max_iter = int(args[9])
+                mlp_learning_rate = args[10]
+                mlp_learning_rate_init = float(args[11])
+                mlp_tol = float(args[12])
+                experiment_name = args[13]
     
     #Importing the data
     print("Importing the data...")
@@ -286,15 +406,17 @@ if __name__ == "__main__":
     print("Data imported")
     
     #Introducing missing values
-    print("Introducing missing values...")
-    df = introduce_missing_values(df, 5)
-    print("Missing values introduced")
+    if missing_data:
+        print("Introducing missing values...")
+        df = introduce_missing_values(df, missing_data_percentage)
+        print("Missing values introduced")
     
-    #Imputing missing values
-    print("Imputing missing values...")
-    df = impute_missing_values(df, 'knn')
-    print("Missing values imputed")
+        #Imputing missing values
+        print("Imputing missing values...")
+        df = impute_missing_values(df, imputing_method)
+        print("Missing values imputed")
     
+
     #Adding labels
     print("Adding labels...")
     df = add_labels(df, targets)
@@ -307,12 +429,12 @@ if __name__ == "__main__":
     
     #Removing outliers
     print("Removing outliers...")
-    df = outlier_removal(df, '3sigma')
+    df = outlier_removal(df, outlier_method)
     print("Outliers removed")
     
     #Normalizing the data
     print("Normalizing the data...")
-    df = normalize(df, 'minmax')
+    df = normalize(df, normalization_method)
     print("Data normalized")
 
     #Transforming labels into strings
@@ -327,6 +449,23 @@ if __name__ == "__main__":
     
     #Classifying the data
     print("Classifying the data...")
-    cv_results= classificator(df, 'knn', 5)
+    if classification_method == 'knn':
+        cv_results, ax1, ax2 = classificator(df, classification_method, knn_neighbors)
+    else:
+        cv_results, ax1, ax2 = classificator(df, classification_method, mlp_activation, (mlp_first_layer, mlp_second_layer), 
+                                   mlp_max_iter, mlp_learning_rate, mlp_learning_rate_init, mlp_tol)
     print("Data classified")
+
+    # Save the results to a file
+    with open('results.pkl', 'wb') as f:
+        pickle.dump(cv_results, f)
+    
+    # Save the plots to files
+    ax1.savefig('aggregated_confusion_matrix_' + experiment_name + '.png')
+    if ax2 != None:
+        ax2.savefig('aggregate_training_loss_' + experiment_name + '.png')   
+
+
+
+
 

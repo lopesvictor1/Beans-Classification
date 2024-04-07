@@ -17,5 +17,8 @@ Seaborn:
 Scikit Learn:
 * pip install scikit-learn
 
+Matplotlib:
+* pip install matplotlib
+
 UCI Datasets Repository:
 * pip install ucimlrepo 
