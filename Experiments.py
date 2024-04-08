@@ -211,7 +211,7 @@ def classificator(df, method='knn', *args):
         knn_classifier = KNeighborsClassifier(n_neighbors=n_neighbors)
 
         # Define the cross-validation splitter
-        cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+        cv = StratifiedKFold(n_splits=10, shuffle=True)
         
         # Perform cross-validation and obtain the indices of train and test sets
         cv_results = cross_validate(knn_classifier, X, y, cv=cv, scoring=scoring, return_train_score=True, return_estimator=True, error_score='raise')
@@ -247,7 +247,7 @@ def classificator(df, method='knn', *args):
                                    verbose=True, learning_rate=learning_rate, learning_rate_init=learning_rate_init, tol=tol, max_iter=max_iter)
 
         # Define the cross-validation splitter
-        cv = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+        cv = StratifiedKFold(n_splits=10, shuffle=True)
         cv_results = cross_validate(classifier, X, y, cv=cv, scoring=scoring, return_train_score=True, return_estimator=True, error_score='raise')
 
         agg_conf_matrix, agg_loss = plot_results(cv, cv_results, X, y)
@@ -407,9 +407,10 @@ if __name__ == "__main__":
         print("Missing values introduced")
     
         #Imputing missing values
-        print("Imputing missing values...")
-        df = impute_missing_values(df, imputing_method)
-        print("Missing values imputed")
+        if imputing_method != "-1":
+            print("Imputing missing values...")
+            df = impute_missing_values(df, imputing_method)
+            print("Missing values imputed")
     
 
     #Adding labels
@@ -423,14 +424,16 @@ if __name__ == "__main__":
     print("Labels transformed into numbers")
     
     #Removing outliers
-    print("Removing outliers...")
-    df = outlier_removal(df, outlier_method)
-    print("Outliers removed")
+    if outlier_method != "-1":
+        print("Removing outliers...")
+        df = outlier_removal(df, outlier_method)
+        print("Outliers removed")
     
     #Normalizing the data
-    print("Normalizing the data...")
-    df = normalize(df, normalization_method)
-    print("Data normalized")
+    if normalization_method != "-1":
+        print("Normalizing the data...")
+        df = normalize(df, normalization_method)
+        print("Data normalized")
 
     #Transforming labels into strings
     print("Transforming labels into strings...")

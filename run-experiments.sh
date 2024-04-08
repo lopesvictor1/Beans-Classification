@@ -43,31 +43,40 @@ if [ "$1" == "all" ]; then
         done
     done
 else
-    if [ "$5" == "knn"] && [ $# -lt 6 ]; then
+    if [ "$5" == "knn" ] && [ $# -lt 6 ]; then
         echo "Please provide the number of neighbors for the KNN algorithm."
         exit 1
     fi
-    if [ "$5" == "mlp"] && [ $# -lt 12 ]; then
+    if [ "$5" == "mlp" ] && [ $# -lt 12 ]; then
         echo "Please provide the number of hidden layers, the number of neurons per layer, the activation function, the solver, the learning rate, the maximum number of iterations, and the early stopping parameter for the MLP algorithm."
         exit 1
     fi
 
-    if [ "$1" == "TRUE" ]; then
+    if [ "$1" == "True" ]; then
         if [ "$6" == "knn" ]; then
-            echo "Running experiment:" "$1" "$2" "$3" "$4" "$5" "$6" "$7"
-            python Experiments.py "$1" "$2" "$3" "$4" "$5" "$6" "$7"
+            for (( i=1; i<=$9; i++)); do
+                echo "Running experiment:" "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+                python Experiments.py "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8"
+            done
         else
-            echo "Running experiment:" "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}" "$14"
-            python Experiments.py "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}" "$14"
+        echo "teste"
+            for (( i=1; i<=${15}; i++)); do
+                echo "Running experiment:" "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}" "${14}"
+                python Experiments.py "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}" "${14}"
+            done
         fi 
         exit 0
     else 
         if [ "$6" == "knn" ]; then
-            echo "Running experiment:" "$1" "$2" "$3" "$4" "$5" "$6" 
-            python Experiments.py "$1" "$2" "$3" "$4" "$5" "$6"
+            for (( i=1; i<=$7; i++)); do
+                echo "Running experiment:" "$1" "$2" "$3" "$4" "$5" "$6" 
+                python Experiments.py "$1" "$2" "$3" "$4" "$5" "$6"
+            done
         else
-            echo "Running experiment:" "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}"
-            python Experiments.py "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}"
+            for (( i=1; i<=$14; i++)); do
+                echo "Running experiment:" "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}"
+                python Experiments.py "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}"
+            done
         fi
 
         exit 0
