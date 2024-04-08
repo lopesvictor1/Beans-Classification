@@ -462,7 +462,7 @@ if __name__ == "__main__":
                          mlp_learning_rate, mlp_learning_rate_init, mlp_tol, cv_results['test_acc'].mean(), cv_results['test_prec'].mean(), 
                          cv_results['test_recall'].mean(), cv_results['test_f1'].mean()])
 
-    folder_path = os.path.join(os.getcwd(), 'Plots/Experiments/')
+    folder_path = os.path.join(os.getcwd(), 'Plots/Best_MLP/')
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     # Save the plots to files
