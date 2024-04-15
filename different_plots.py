@@ -17,6 +17,8 @@ from sklearn.model_selection import cross_validate
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import StratifiedKFold
 from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 
 cols = ['Area', 'Perimeter', 'MajorAxisLength', 'MinorAxisLength', 'AspectRatio', 'Eccentricity', 
@@ -250,13 +252,185 @@ def classificator(df, method='knn', *args):
         cv = StratifiedKFold(n_splits=10, shuffle=True)
         cv_results = cross_validate(classifier, X, y, cv=cv, scoring=scoring, return_train_score=True, return_estimator=True, error_score='raise')
 
-        agg_conf_matrix, agg_loss = plot_results(cv, cv_results, X, y)
+        #agg_conf_matrix, agg_loss = plot_results(cv, cv_results, X, y)
+        plot_loss_curves(cv, cv_results, X, y)
   
     else:
         print("Invalid classification method. Please choose between knn and mlp.")
         exit(1)
     return cv_results, agg_conf_matrix, agg_loss
 
+
+def mlp(df, activation, hidden_layer_sizes, max_iter, learning_rate, learning_rate_init, tol):
+    """
+    Classify the dataframe using a MLP
+
+    Args:
+        df (pd.DataFrame): the dataframe
+        activation (str): the activation function
+        hidden_layer_sizes (tuple): the hidden layer sizes
+        max_iter (int): the maximum number of iterations
+        learning_rate (str): the learning rate
+        learning_rate_init (float): the initial learning rate
+        tol (float): the tolerance
+
+    Returns:
+        df (pd.DataFrame): the dataframe with the predicted labels
+    """
+    X = df.iloc[:, :16]  # Features (columns 0 to 15)
+    y = df.iloc[:, 16]   # Label (column 16)
+    scoring = {'acc' : 'accuracy',
+            'prec' : 'precision_macro',
+            'recall' : 'recall_macro',
+            'f1' : 'f1_macro'}
+    
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = MLPClassifier(activation=activation, solver='adam', alpha=1e-5, hidden_layer_sizes=hidden_layer_sizes, random_state=1, 
+                                verbose=True, learning_rate=learning_rate, learning_rate_init=learning_rate_init, tol=tol, max_iter=max_iter, 
+                                early_stopping=False)
+
+    # Define the cross-validation splitter
+    cv = StratifiedKFold(n_splits=10, shuffle=True)
+    cv_results = cross_validate(model, X, y, cv=cv, scoring=scoring, return_train_score=True, return_estimator=True, error_score='raise')
+
+    # Train the model
+    model.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    
+    loss_train = []
+    loss_test = []
+    
+    accuracy_train = []
+    accuracy_test = []
+    
+    for fold, (estimator, (train_index, test_index)) in enumerate(zip(cv_results['estimator'], cv.split(X, y))):
+        # Train the estimator
+        X_train, y_train = X.iloc[train_index], y.iloc[train_index]
+        X_test, y_test = X.iloc[test_index], y.iloc[test_index]
+        
+        y_pred = model.predict(X_test)
+        
+        accuracy_train.append(accuracy_score(y_train, model.predict(X_train)))
+        accuracy_test.append(accuracy_score(y_test, y_pred))
+        
+        
+        
+        loss_train.append(model.loss_)
+        loss_test.append(model.loss_)
+        
+        print(f'Fold {fold + 1} - Train Accuracy: {accuracy_train[-1]}, Test Accuracy: {accuracy_test[-1]}')
+        print(f'Fold {fold + 1} - Train Loss: {loss_train[-1]}, Test Loss: {loss_test[-1]}')
+        
+
+    
+
+    # Plot the training loss curve
+    plt.figure(figsize=(12, 6))
+    plt.plot(loss_train, label='Training Loss')
+    plt.plot(loss_test, label='Test Loss')
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+    plt.title('Training Loss Curve')
+    plt.legend()
+    plt.show()
+    
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(accuracy_train, label='Training Accuracy')
+    plt.plot(accuracy_test, label='Test Accuracy')
+    plt.xlabel('Iteration')
+    plt.ylabel('Accuracy')
+    plt.title('Training Accuracy Curve')
+    plt.legend()
+    plt.show()
+    
+    
+def mlpp(df, activation, hidden_layer_sizes, max_iter, learning_rate, learning_rate_init, tol):
+    """
+    Classify the dataframe using a MLP
+
+    Args:
+        df (pd.DataFrame): the dataframe
+        activation (str): the activation function ('identity', 'logistic', 'tanh', or 'relu')
+        hidden_layer_sizes (tuple): the hidden layer sizes
+        max_iter (int): the maximum number of iterations
+        learning_rate (str or float): the learning rate ('constant', 'invscaling', or 'adaptive'), or a fixed learning rate
+        learning_rate_init (float): the initial learning rate
+        tol (float): the tolerance
+
+    Returns:
+        df (pd.DataFrame): the dataframe with the predicted labels
+    """
+    from sklearn.neural_network import MLPClassifier
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import accuracy_score
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    X = df.iloc[:, :16]  # Features (columns 0 to 15)
+    y = df.iloc[:, 16]   # Label (column 16)
+    
+    # Split the data into training, validation, and testing sets
+    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+
+    #tol = 1e-20
+
+    # Initialize MLPClassifier
+    model = MLPClassifier(activation=activation, hidden_layer_sizes=hidden_layer_sizes, max_iter=max_iter, 
+                          learning_rate=learning_rate, learning_rate_init=learning_rate_init, random_state=42, 
+                          tol=tol, early_stopping=True, validation_fraction=0.1, n_iter_no_change=10, verbose=True)
+
+    # Train the model
+    model.fit(X_train, y_train)
+    
+    # Get the training and validation losses
+    loss_train = model.loss_curve_
+    loss_val = model.validation_scores_
+
+    # Plot the training and validation loss curves
+    plt.figure(figsize=(12, 6))
+    plt.plot(loss_train, label='Training Loss')
+    plt.plot(loss_val, label='Validation Loss')
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss Curve')
+    plt.legend()
+    plt.show()
+    
+        # Initialize MLPClassifier
+    model = MLPClassifier(activation=activation, hidden_layer_sizes=hidden_layer_sizes, max_iter=max_iter, 
+                          learning_rate=learning_rate, learning_rate_init=learning_rate_init, random_state=42, 
+                          tol=tol, early_stopping=False, validation_fraction=0.1, n_iter_no_change=10)
+
+    # Train the model
+    model.fit(X_train, y_train)
+    
+        # Get the training and validation accuracies
+    accuracy_train = [accuracy_score(y_train, model.predict(X_train))]
+    accuracy_val = [accuracy_score(y_val, model.predict(X_val))]
+    epoch = 0
+    while epoch < max_iter:
+        model.partial_fit(X_train, y_train, classes=np.unique(y_train))
+        
+        # Compute accuracy on training and validation sets
+        accuracy_train.append(accuracy_score(y_train, model.predict(X_train)))
+        accuracy_val.append(accuracy_score(y_val, model.predict(X_val)))
+        
+        epoch += 1
+        # Plot the training and validation accuracy curves
+    plt.figure(figsize=(12, 6))
+    plt.plot(accuracy_train, label='Training Accuracy')
+    plt.plot(accuracy_val, label='Validation Accuracy')
+    plt.xlabel('Iteration')
+    plt.ylabel('Accuracy')
+    plt.title('Training and Validation Accuracy Curve')
+    plt.legend()
+    plt.show()
 
 def plot_results(cv, cv_results, X, y):
     """
@@ -313,71 +487,74 @@ def plot_results(cv, cv_results, X, y):
     return agg_conf_matrix, agg_loss
             
 
+def plot_loss_curves(cv, cv_results, X, y):
+    """
+    Plot the results of the classification
+
+    Args:
+        cv (cv): the cross-validation splitter
+        cv_results (dict): the results of the classification
+        X (pd.DataFrame): the features
+        y (pd.DataFrame): the labels
+    """
+    
+    # Collect predictions from each fold
+    y_pred = []
+    # Initialize an empty list to store confusion matrices for each fold
+    conf_matrices = []
+    # Initialize an empty list to store training loss curves for each fold
+    training_loss_curves = []
+    # Determine the total number of classes
+    num_classes = len(np.unique(y))
+    for fold, (estimator, (train_index, test_index)) in enumerate(zip(cv_results['estimator'], cv.split(X, y))):
+        # Train the estimator
+        X_train, y_train = X.iloc[train_index], y.iloc[train_index]
+        X_test, y_test = X.iloc[test_index], y.iloc[test_index]
+
+        # Fit the model
+        estimator.fit(X_train, y_train)
+
+        # Predict on test set
+        y_pred_fold = estimator.predict(X_test)
+        y_pred.append(y_pred_fold)
+
+        # Compute the confusion matrix for this fold with specified number of classes
+        conf_matrix_fold = confusion_matrix(y_test, y_pred_fold, labels=range(num_classes))
+
+        # Append the confusion matrix to the list
+        conf_matrices.append(conf_matrix_fold)
+
+        # Store the training loss curve for this fold
+        training_loss_curves.append(estimator.loss_curve_)
+    
+    plt.figure(figsize=(12, 8))  # Create the figure outside the loop
+    for fold, loss_curve in enumerate(training_loss_curves):
+        plt.plot(np.arange(1, len(loss_curve) + 1), loss_curve, label='Fold {}'.format(fold + 1))
+
+    plt.xlabel('Iteration')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+        
 
 if __name__ == "__main__":
 
-    missing_data = -1
-    missing_data_percentage = -1
-    imputing_method = -1
-    outlier_method = -1
-    normalization_method = -1
-    classification_method = -1
+    missing_data = True
+    missing_data_percentage = 5
+    imputing_method = 'knn'
+    outlier_method = 'mad'
+    normalization_method = 'minmax'
+    classification_method = 'mlp'
     knn_neighbors = -1
-    mlp_activation = -1
-    mlp_first_layer = -1
-    mlp_second_layer = -1
-    mlp_max_iter = -1
-    mlp_learning_rate = -1
-    mlp_learning_rate_init = -1
-    mlp_tol = -1
+    mlp_activation = 'logistic'
+    mlp_first_layer = 100
+    mlp_second_layer = 100
+    mlp_max_iter = 500
+    mlp_learning_rate = 'constant'
+    mlp_learning_rate_init = 0.003
+    mlp_tol = 1e-5
     experiment_name = 'No Experiment Name Specified'
 
-    
-    args = sys.argv[1:]
-
-    if len(args) < 1:
-        print("Invalid number of arguments. Please provide all arguments necessary.")
-        print("Example: python Experiments.py True 5 knn 3sigma minmax knn 10")
-        exit(1)
-    else:
-        if args[0] == 'False':
-            missing_data = False
-            imputing_method = args[1]
-            outlier_method = args[2]
-            normalization_method = args[3]
-            classification_method = args[4]
-            if classification_method == 'knn':
-                knn_neighbors = int(args[5])
-                experiment_name = args[6]
-            else:
-                mlp_activation = args[5]
-                mlp_first_layer = int(args[6])
-                mlp_second_layer = int(args[7])
-                mlp_max_iter = int(args[8])
-                mlp_learning_rate = args[9]
-                mlp_learning_rate_init = float(args[10])
-                mlp_tol = float(args[11])
-                experiment_name = args[12]
-        else:
-            missing_data = True
-            missing_data_percentage = int(args[1])
-            imputing_method = args[2]
-            outlier_method = args[3]
-            normalization_method = args[4]
-            classification_method = args[5]
-            if classification_method == 'knn':
-                knn_neighbors = int(args[6])
-                experiment_name = args[7]
-            else:
-                mlp_activation = args[6]
-                mlp_first_layer = int(args[7])
-                mlp_second_layer = int(args[8])
-                mlp_max_iter = int(args[9])
-                mlp_learning_rate = args[10]
-                mlp_learning_rate_init = float(args[11])
-                mlp_tol = float(args[12])
-                experiment_name = args[13]
-    
     #Importing the data
     print("Importing the data...")
     # Check if the files exist in the current directory
@@ -450,28 +627,9 @@ if __name__ == "__main__":
     if classification_method == 'knn':
         cv_results, agg_conf_matrix, agg_loss = classificator(df, classification_method, knn_neighbors)
     else:
-        cv_results, agg_conf_matrix, agg_loss = classificator(df, classification_method, mlp_activation, (mlp_first_layer, mlp_second_layer), 
+        mlpp(df, mlp_activation, (mlp_first_layer, mlp_second_layer), 
                                    mlp_max_iter, mlp_learning_rate, mlp_learning_rate_init, mlp_tol)
     print("Data classified")
-
-    # Save the results to a file
-    with open('results.csv', mode='a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow([experiment_name, missing_data, missing_data_percentage, imputing_method, outlier_method, normalization_method,
-                         classification_method, knn_neighbors, mlp_activation, mlp_first_layer, mlp_second_layer, mlp_max_iter, 
-                         mlp_learning_rate, mlp_learning_rate_init, mlp_tol, cv_results['test_acc'].mean(), cv_results['test_prec'].mean(), 
-                         cv_results['test_recall'].mean(), cv_results['test_f1'].mean()])
-
-    folder_path = os.path.join(os.getcwd(), 'Plots/Best_MLP/')
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    # Save the plots to files
-    if agg_conf_matrix != None:
-        agg_conf_matrix = plt.title('Aggregated Confusion Matrix - ' + str(experiment_name))
-        plt.savefig(folder_path + 'aggregated_confusion_matrix_' + str(experiment_name) + '.png')
-    if agg_loss != None:
-        agg_loss = plt.title('Training Loss - ' + experiment_name)
-        plt.savefig(folder_path + 'training_loss_' + str(experiment_name) + '.png')
 
 
 
