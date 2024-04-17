@@ -393,12 +393,16 @@ def plot_results(cv, cv_results, X, y):
 
 if __name__ == "__main__":
 
-    missing_data = True
+    missing_data = False
     missing_data_percentage = 5
-    imputing_methods = ['knn', 'il']
-    outlier_methods = ['3sigma', 'mad']
-    normalization_methods = ['minmax', 'zscore']
+    #imputing_methods = ['knn', 'il']
+    #outlier_methods = ['3sigma', 'mad']
+    #normalization_methods = ['minmax', 'zscore']
     classification_methods = ['knn', 'mlp']
+    imputing_methods = ['-1']
+    outlier_methods = ['-1']
+    normalization_methods = ['-1', 'minmax']
+    
     knn_neighbors = 10
     mlp_activation = 'logistic'
     mlp_first_layer = 12
@@ -414,116 +418,115 @@ if __name__ == "__main__":
         for o in outlier_methods:
             for n in normalization_methods:
                 for c in classification_methods:
-                    if experiment == 12:
-                        for x in range(1):
-                            imputing_method = i
-                            outlier_method = o
-                            normalization_method = n
-                            classification_method = c
-                            experiment_name = f'Experimento {experiment}'  
+                    for x in range(49):
+                        imputing_method = i
+                        outlier_method = o
+                        normalization_method = n
+                        classification_method = c
+                        experiment_name = f'Koklu-{classification_method}-{normalization_method}'  
 
-                            print(f'Experimento {experiment}: {imputing_method}, {outlier_method}, {normalization_method}, {classification_method}')
-                            
-                                #Importing the data
-                            print("Importing the data...")
-                            # Check if the files exist in the current directory
-                            if os.path.exists('df.pkl') and os.path.exists('targets.pkl'):
-                                # Load the DataFrame and targets from the files
-                                with open('df.pkl', 'rb') as f:
-                                    df = pickle.load(f)
-                                with open('targets.pkl', 'rb') as f:
-                                    targets = pickle.load(f)
-                            else:
-                                # Fetch the data using fetch_ucirepo
-                                beans = fetch_ucirepo(id=602)
-                                df = pd.DataFrame(beans.data.features, columns=beans.feature_names)
-                                
-                                # Extract and save the targets
-                                targets = beans.data.targets
-                                with open('df.pkl', 'wb') as f:
-                                    pickle.dump(df, f)
-                                with open('targets.pkl', 'wb') as f:
-                                    pickle.dump(targets, f)
-                            print("Data imported")
-                            
-                            #Introducing missing values
-                            if missing_data:
-                                print("Introducing missing values...")
-                                df = introduce_missing_values(df, missing_data_percentage)
-                                print("Missing values introduced")
-                            
-                                #Imputing missing values
-                                if imputing_method != "-1":
-                                    print("Imputing missing values...")
-                                    df = impute_missing_values(df, imputing_method)
-                                    print("Missing values imputed")
-                            
-
-                            #Adding labels
-                            print("Adding labels...")
-                            df = add_labels(df, targets)
-                            print("Labels added")
-                            
-                            #Transforming labels
-                            print("Transforming labels into numbers...")
-                            df = transform_labels_int(df)
-                            print("Labels transformed into numbers")
-                            
-                            #Removing outliers
-                            if outlier_method != "-1":
-                                print("Removing outliers...")
-                                df = outlier_removal(df, outlier_method)
-                                print("Outliers removed")
-                            
-                            #Normalizing the data
-                            if normalization_method != "-1":
-                                print("Normalizing the data...")
-                                df = normalize(df, normalization_method)
-                                print("Data normalized")
-
-                            #Transforming labels into strings
-                            print("Transforming labels into strings...")
-                            df = transform_labels_str(df)
-                            print("Labels transformed into strings")
-                            
-                            #Transforming labels
-                            print("Transforming labels into numbers...")
-                            df = transform_labels_int(df)
-                            print("Labels transformed into numbers")
-                            
-                            #Classifying the data
-                            print("Classifying the data...")
-                            if classification_method == 'knn':
-                                cv_results, agg_conf_matrix= classificator(df, classification_method, knn_neighbors)
-                            else:
-                                cv_results, agg_conf_matrix= classificator(df, classification_method, mlp_activation, (mlp_first_layer, mlp_second_layer), 
-                                                                                    mlp_max_iter, mlp_learning_rate, mlp_learning_rate_init, mlp_tol)
-                                loss_curve, accuracy_curve = plot_mlp_curves(df, mlp_activation, (mlp_first_layer, mlp_second_layer), 
-                                                                            mlp_max_iter, mlp_learning_rate, mlp_learning_rate_init, mlp_tol)
-                            print("Data classified")
-                            
-                            # Save the results to a file
-                            with open('results.csv', mode='a', newline='') as f:
-                                writer = csv.writer(f)
-                                writer.writerow([experiment_name, missing_data, missing_data_percentage, imputing_method, outlier_method, normalization_method,
-                                                classification_method, knn_neighbors, mlp_activation, mlp_first_layer, mlp_second_layer, mlp_max_iter, 
-                                                mlp_learning_rate, mlp_learning_rate_init, mlp_tol, cv_results['test_acc'].mean(), cv_results['test_prec'].mean(), 
-                                                cv_results['test_recall'].mean(), cv_results['test_f1'].mean()])
-
-                            folder_path = os.path.join(os.getcwd(), 'Plots/Experiments/')
-                            if not os.path.exists(folder_path):
-                                os.makedirs(folder_path)
-                            # Save the plots to files
-                            if agg_conf_matrix != None:
-                                plt.figure(agg_conf_matrix.number)
-                                agg_conf_matrix = plt.title('Aggregated Confusion Matrix - ' + str(experiment_name))
-                                plt.savefig(folder_path + str(experiment_name) + 'aggregated_confusion_matrix' + '.png')
-                            if classification_method == 'mlp':
-                                plt.figure(loss_curve.number)
-                                loss_curve = plt.title('Training and Testing losses - ' + experiment_name)
-                                plt.savefig(folder_path + str(experiment_name) +  '_training+testing_loss' + '.png')
-                                plt.figure(accuracy_curve.number)
-                                accuracy_curve = plt.title('Training and Testing accuracies - ' + experiment_name)
-                                plt.savefig(folder_path + str(experiment_name) + '_training+testing_accuracy''.png')
+                        print(f'Experimento {experiment}: {imputing_method}, {outlier_method}, {normalization_method}, {classification_method}')
                         
+                            #Importing the data
+                        print("Importing the data...")
+                        # Check if the files exist in the current directory
+                        if os.path.exists('df.pkl') and os.path.exists('targets.pkl'):
+                            # Load the DataFrame and targets from the files
+                            with open('df.pkl', 'rb') as f:
+                                df = pickle.load(f)
+                            with open('targets.pkl', 'rb') as f:
+                                targets = pickle.load(f)
+                        else:
+                            # Fetch the data using fetch_ucirepo
+                            beans = fetch_ucirepo(id=602)
+                            df = pd.DataFrame(beans.data.features, columns=beans.feature_names)
+                            
+                            # Extract and save the targets
+                            targets = beans.data.targets
+                            with open('df.pkl', 'wb') as f:
+                                pickle.dump(df, f)
+                            with open('targets.pkl', 'wb') as f:
+                                pickle.dump(targets, f)
+                        print("Data imported")
+                        
+                        #Introducing missing values
+                        if missing_data:
+                            print("Introducing missing values...")
+                            df = introduce_missing_values(df, missing_data_percentage)
+                            print("Missing values introduced")
+                        
+                            #Imputing missing values
+                            if imputing_method != "-1":
+                                print("Imputing missing values...")
+                                df = impute_missing_values(df, imputing_method)
+                                print("Missing values imputed")
+                        
+
+                        #Adding labels
+                        print("Adding labels...")
+                        df = add_labels(df, targets)
+                        print("Labels added")
+                        
+                        #Transforming labels
+                        print("Transforming labels into numbers...")
+                        df = transform_labels_int(df)
+                        print("Labels transformed into numbers")
+                        
+                        #Removing outliers
+                        if outlier_method != "-1":
+                            print("Removing outliers...")
+                            df = outlier_removal(df, outlier_method)
+                            print("Outliers removed")
+                        
+                        #Normalizing the data
+                        if normalization_method != "-1":
+                            print("Normalizing the data...")
+                            df = normalize(df, normalization_method)
+                            print("Data normalized")
+
+                        #Transforming labels into strings
+                        print("Transforming labels into strings...")
+                        df = transform_labels_str(df)
+                        print("Labels transformed into strings")
+                        
+                        #Transforming labels
+                        print("Transforming labels into numbers...")
+                        df = transform_labels_int(df)
+                        print("Labels transformed into numbers")
+                        
+                        #Classifying the data
+                        print("Classifying the data...")
+                        if classification_method == 'knn':
+                            cv_results, agg_conf_matrix= classificator(df, classification_method, knn_neighbors)
+                        else:
+                            cv_results, agg_conf_matrix= classificator(df, classification_method, mlp_activation, (mlp_first_layer, mlp_second_layer), 
+                                                                                mlp_max_iter, mlp_learning_rate, mlp_learning_rate_init, mlp_tol)
+                            loss_curve, accuracy_curve = plot_mlp_curves(df, mlp_activation, (mlp_first_layer, mlp_second_layer), 
+                                                                        mlp_max_iter, mlp_learning_rate, mlp_learning_rate_init, mlp_tol)
+                        print("Data classified")
+                        
+                        # Save the results to a file
+                        with open('results.csv', mode='a', newline='') as f:
+                            writer = csv.writer(f)
+                            writer.writerow([experiment_name, missing_data, missing_data_percentage, imputing_method, outlier_method, normalization_method,
+                                            classification_method, knn_neighbors, mlp_activation, mlp_first_layer, mlp_second_layer, mlp_max_iter, 
+                                            mlp_learning_rate, mlp_learning_rate_init, mlp_tol, cv_results['test_acc'].mean(), cv_results['test_prec'].mean(), 
+                                            cv_results['test_recall'].mean(), cv_results['test_f1'].mean()])
+
+                        folder_path = os.path.join(os.getcwd(), 'Plots/Experiments/')
+                        if not os.path.exists(folder_path):
+                            os.makedirs(folder_path)
+                        # Save the plots to files
+                        if agg_conf_matrix != None:
+                            plt.figure(agg_conf_matrix.number)
+                            agg_conf_matrix = plt.title('Aggregated Confusion Matrix - ' + str(experiment_name))
+                            plt.savefig(folder_path + str(experiment_name) + 'aggregated_confusion_matrix' + '.png')
+                        if classification_method == 'mlp':
+                            plt.figure(loss_curve.number)
+                            loss_curve = plt.title('Training and Testing losses - ' + experiment_name)
+                            plt.savefig(folder_path + str(experiment_name) +  '_training+testing_loss' + '.png')
+                            plt.figure(accuracy_curve.number)
+                            accuracy_curve = plt.title('Training and Testing accuracies - ' + experiment_name)
+                            plt.savefig(folder_path + str(experiment_name) + '_training+testing_accuracy''.png')
+                    
                     experiment += 1
