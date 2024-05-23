@@ -1,3 +1,4 @@
+Experiment,missing_values,mv_percentage,imputer_method,outlier_method,normalization_method,classification_method,knn_neighbors,mlp_activation,mlp_first_layer,mlp_second_layer,mlp_max_iter,mlp_learning_rate,mlp_learning_rate_init,mlp_tol,accuracy,precision,recall,f1
 Ap-10-5-1500-0.003,True,5,il,mad,zscore,mlp,10,logistic,10,5,1500,adaptive,0.003,1e-05,0.9307914734026657,0.9427190024947685,0.9396006745049258,0.9409465736005593
 Ap-10-5-1500-0.003,True,5,il,mad,zscore,mlp,10,logistic,10,5,1500,adaptive,0.003,1e-05,0.9294687546191851,0.9407984274289293,0.9383830665666318,0.9393852861734858
 Ap-10-5-1500-0.003,True,5,il,mad,zscore,mlp,10,logistic,10,5,1500,adaptive,0.003,1e-05,0.9297623864287402,0.9412480944572446,0.9391333021646548,0.9400210185705606
