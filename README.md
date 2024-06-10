@@ -28,8 +28,8 @@ UCI Datasets Repository:
 
 Para criar os experimentos iniciais, simplesmente mova até o diretório do projeto e digite:
 
-``` python Experiments.py ´´´
+``` python Experiments.py ```
 
 Para criar os experimentos de aprimoramento da rede neural, mova até o diretório do projeto e digite:
 
-``` python Aprimoramento.py ´´´
+``` python Aprimoramento.py ```
